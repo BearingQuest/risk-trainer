@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Learner stats | Risk Trainer{% endblock %}
+{% block content %}
+<h1>Learner stats</h1>
+{% if site %}
+<p id="stats-window">{% if site.full_window %}Totals from the last six calendar months, since {{ site.since_label }}.{% else %}Totals since {{ site.since_label }}.{% endif %}</p>
+{% else %}
+<p id="stats-unavailable">Stats are unavailable right now. Try again in a few minutes.</p>
+{% endif %}
+
+<h2>Read these with care</h2>
+<ul id="stats-caveats">
+  <li>Learners chose to try these scenarios, so they aren't a representative sample.</li>
+  <li>The totals include the site owner's own test attempts.</li>
+  <li>It's a rolling window of about six months: older months drop off.</li>
+  <li>Only the current version of each scenario is counted. A new version starts from zero.</li>
+  <li>This is a learning tool, not research.</li>
+</ul>
+<p id="stats-privacy">Totals only. A scenario shows nothing until it has at least {{ min_sample }} attempts in the window, and the site-wide totals count only those scenarios. Percentages are rounded to whole numbers, so they may not add up to 100. See <a href="/privacy">Privacy</a>.</p>
+
+{% if site %}
+<h2>All scenarios</h2>
+{% if site.total is none %}
+<p id="stats-total">No scenario has {{ min_sample }} attempts in this window yet.</p>
+{% else %}
+<p id="stats-total">{{ site.total }} attempts on scenarios with at least {{ min_sample }} attempts.</p>
+{% endif %}
+<div class="table-wrap">
+<table id="stats-difficulty">
+  <caption>Attempts by difficulty</caption>
+  <thead><tr><th scope="col">Difficulty</th><th scope="col">Attempts</th></tr></thead>
+  <tbody>
+    {% for difficulty, count in site.by_difficulty %}
+    <tr><th scope="row">{{ difficulty.value | capitalize }}</th><td>{% if count is none %}Not enough attempts yet{% else %}{{ count }}{% endif %}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% for s in site.scenarios %}
+<section class="finding-debrief" aria-labelledby="stats-{{ s.scenario_id }}">
+  <h2 id="stats-{{ s.scenario_id }}">{{ s.title }}</h2>
+  <p>Difficulty: {{ s.difficulty.value | capitalize }}</p>
+  {% set f = s.figures %}
+  {% if f is none %}
+  <p>Not enough attempts yet. Figures appear at {{ min_sample }} attempts.</p>
+  {% else %}
+  <p>{{ f.attempts }} attempts. Median score: {{ f.median }} of {{ f.maximum }} points.</p>
+  <div class="table-wrap">
+  <table>
+    <caption>Scores</caption>
+    <thead><tr><th scope="col">Score (share of the maximum)</th><th scope="col">Learners</th></tr></thead>
+    <tbody>
+      {% for band in f.bands %}
+      <tr><th scope="row">{{ band.label }}</th><td>{{ band.percent }}%</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <caption>How learners answered each finding</caption>
+    <thead><tr><th scope="col">Finding</th><th scope="col">Expert choice</th><th scope="col">Chose it</th><th scope="col">Most common other choice</th></tr></thead>
+    <tbody>
+      {% for row in f.findings %}
+      <tr>
+        <th scope="row">{{ row.finding_id }}: {{ row.title }}</th>
+        <td>{{ treatment_labels[row.preferred] }}</td>
+        <td>{{ row.preferred_percent }}%</td>
+        <td>{% if row.other %}{{ treatment_labels[row.other.treatment] }} ({{ row.other.percent }}%){% else %}None{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% for row in f.findings if row.accept_preferred %}
+  <p class="stats-trap">{{ row.finding_id }}, approver trap: {% if row.trap_percent is none %}too few accept answers yet.{% else %}of learners who chose accept, {{ row.trap_percent }}% named the security team or IT operations as the approver. Acceptance belongs to the risk owner or senior management.{% endif %}</p>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endfor %}
+{% endif %}
+{% endblock %}

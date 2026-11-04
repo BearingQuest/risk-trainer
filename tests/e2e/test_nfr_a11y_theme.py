@@ -237,7 +237,7 @@ def test_r18_draft_pill_sits_under_the_title(
 def test_nfr_a11y_no_horizontal_scroll_at_390(browser: Browser, base_url: str, scheme: str) -> None:
     context = browser.new_context(viewport={"width": 390, "height": 844}, color_scheme=scheme)
     page = context.new_page()
-    for path in ("/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy"):
+    for path in ("/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy", "/stats"):
         page.goto(base_url + path)
         assert page.evaluate(
             "document.documentElement.scrollWidth <= document.documentElement.clientWidth"

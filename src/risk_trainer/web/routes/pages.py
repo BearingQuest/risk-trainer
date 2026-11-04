@@ -33,4 +33,6 @@ async def about(request: Request) -> Response:
 
 @router.get("/privacy")
 async def privacy(request: Request) -> Response:
-    return _render(request, "privacy.html")
+    return _render(
+        request, "privacy.html", {"min_sample": request.app.state.settings.peer_min_sample}
+    )

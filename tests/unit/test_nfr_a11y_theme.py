@@ -145,7 +145,9 @@ class _HeadAssets(HTMLParser):
             self.in_head = False
 
 
-@pytest.mark.parametrize("path", ["/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy"])
+@pytest.mark.parametrize(
+    "path", ["/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy", "/stats"]
+)
 def test_r12_page_assets_are_same_origin(path: str) -> None:
     parser = _HeadAssets()
     parser.feed(client().get(path).text)

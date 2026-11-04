@@ -1,12 +1,16 @@
-"""DynamoDB attempt store (PRD R9). One table keyed by pk/sk.
+"""DynamoDB attempt store (PRD R9, R22). One table keyed by pk/sk.
 
 - Attempt: pk=ATTEMPT#<submit_id>, sk=ATTEMPT, with expires_at (TTL, epoch seconds).
 - Aggregate: pk=AGG#<scenario_id>#v<version>, sk=AGG, with counters n and F1#avoid etc.
+- Monthly stats bucket: the aggregate's pk, sk=MONTH#<YYYY-MM>, with counters n, F1#avoid,
+  F5#by#security_team and score#7, and expires_at about seven months on.
 
 Each submission is one transaction: a conditional Put of the attempt (so a resubmitted form
-isn't counted twice) and an ADD to the aggregate counters.
+isn't counted twice) and an ADD to the aggregate counters. The monthly bucket is a separate
+UpdateItem, made only after the transaction records a new attempt.
 """
 
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import boto3
@@ -14,11 +18,13 @@ from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 from risk_trainer.domain.peers import counter_name
+from risk_trainer.domain.stats import bucket_expires_at, month_key
 from risk_trainer.storage.attempts import (
     AttemptRecord,
     PeerCounts,
     StorageError,
     expires_at,
+    month_counters,
 )
 
 if TYPE_CHECKING:
@@ -38,6 +44,10 @@ def make_client(region: str | None) -> DynamoDBClient:
 
 def aggregate_pk(scenario_id: str, version: int) -> str:
     return f"AGG#{scenario_id}#v{version}"
+
+
+def month_sk(month: str) -> str:
+    return f"MONTH#{month}"
 
 
 class DynamoAttemptStore:
@@ -111,14 +121,62 @@ class DynamoAttemptStore:
             )
         except (ClientError, BotoCoreError) as exc:
             raise StorageError("could not read peer counts") from exc
-        item = response.get("Item", {})
-        counters = {
-            name: int(value["N"])
-            for name, value in item.items()
-            if name not in ("pk", "sk") and "N" in value
-        }
-        attempts = counters.pop(ATTEMPTS_COUNTER, 0)
+        return _counts(response.get("Item", {}))
+
+    def add_to_month(self, attempt: AttemptRecord) -> None:
+        month = month_key(attempt.submitted_at)
+        counters = [ATTEMPTS_COUNTER, *month_counters(attempt)]
+        names = {f"#c{i}": name for i, name in enumerate(counters)}
+        update = "SET #exp = if_not_exists(#exp, :exp) ADD " + ", ".join(
+            f"{placeholder} :one" for placeholder in names
+        )
+        try:
+            self._client.update_item(
+                TableName=self._table,
+                Key={
+                    "pk": {"S": aggregate_pk(attempt.scenario_id, attempt.scenario_version)},
+                    "sk": {"S": month_sk(month)},
+                },
+                UpdateExpression=update,
+                ExpressionAttributeNames={**names, "#exp": "expires_at"},
+                ExpressionAttributeValues={
+                    ":one": {"N": "1"},
+                    ":exp": {"N": str(bucket_expires_at(month))},
+                },
+            )
+        except (ClientError, BotoCoreError) as exc:
+            raise StorageError("could not update the monthly totals") from exc
+
+    def window_counts(self, scenario_id: str, version: int, months: Sequence[str]) -> PeerCounts:
+        attempts = 0
+        counters: dict[str, int] = {}
+        for month in months:
+            try:
+                response = self._client.get_item(
+                    TableName=self._table,
+                    Key={
+                        "pk": {"S": aggregate_pk(scenario_id, version)},
+                        "sk": {"S": month_sk(month)},
+                    },
+                    ConsistentRead=False,
+                )
+            except (ClientError, BotoCoreError) as exc:
+                raise StorageError("could not read the monthly totals") from exc
+            bucket = _counts(response.get("Item", {}))
+            attempts += bucket.attempts
+            for name, count in bucket.counters.items():
+                counters[name] = counters.get(name, 0) + count
         return PeerCounts(attempts, counters)
+
+
+def _counts(item: Mapping[str, Any]) -> PeerCounts:
+    counters = {
+        name: int(value["N"])
+        for name, value in item.items()
+        if name not in ("pk", "sk", "expires_at") and "N" in value
+    }
+    attempts = counters.pop(ATTEMPTS_COUNTER, 0)
+    return PeerCounts(attempts, counters)
 
 
 def _is_duplicate(exc: ClientError) -> bool:

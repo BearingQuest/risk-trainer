@@ -1,4 +1,4 @@
-"""FastAPI app factory (PRD R5-R10, R12, R13, R15)."""
+"""FastAPI app factory (PRD R5-R10, R12, R13, R15, R22)."""
 
 import mimetypes
 from collections.abc import Mapping
@@ -26,7 +26,8 @@ from risk_trainer.web.middleware import (
     RequestContextMiddleware,
     SecurityHeadersMiddleware,
 )
-from risk_trainer.web.routes import exercise, pages
+from risk_trainer.web.routes import exercise, pages, stats
+from risk_trainer.web.routes.stats import StatsCache
 
 WEB_DIR = Path(__file__).resolve().parent
 STATIC_DIR = WEB_DIR / "static"
@@ -123,6 +124,7 @@ def create_app(
         rate_limiter if rate_limiter is not None else build_rate_limiter(settings)
     )
     app.state.metrics = Metrics(settings.metrics_namespace)
+    app.state.stats_cache = StatsCache()
     loaded = scenarios if scenarios is not None else load_publishable(settings.content_dir)
     app.state.scenarios = {scenario.id: scenario for scenario in loaded}
 
@@ -156,6 +158,7 @@ def create_app(
 
     app.include_router(pages.router)
     app.include_router(exercise.router)
+    app.include_router(stats.router)
     app.mount(
         "/static",
         VersionedStaticFiles(directory=STATIC_DIR, version=static_version),

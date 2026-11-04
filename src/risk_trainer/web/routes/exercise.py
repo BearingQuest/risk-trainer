@@ -1,5 +1,5 @@
 """The exercise form, submission, scoring and debrief (PRD R6-R9), with the per-session
-submission limit (R13) and the attempt metric (R15)."""
+submission limit (R13), the attempt metric (R15) and the monthly stats totals (R22)."""
 
 import logging
 import re
@@ -174,9 +174,24 @@ def _record_and_count(
     if recorded:
         metrics: Metrics = request.app.state.metrics
         metrics.count(Metric.ATTEMPTS)
+        _add_to_month(store, attempt)
     return distribution(
         counts.attempts,
         counts.counters,
         [finding.id for finding in scenario.findings],
         request.app.state.settings.peer_min_sample,
     )
+
+
+def _add_to_month(store: AttemptStore, attempt: AttemptRecord) -> None:
+    """Add a newly recorded attempt to the monthly stats totals (R22).
+
+    Fail-open: the attempt is already saved, so a failure here only leaves it out of the stats.
+    """
+    try:
+        store.add_to_month(attempt)
+    except StorageError:
+        logger.exception(
+            "monthly stats update failed",
+            extra={"event": "stats_bucket_error", "scenario_id": attempt.scenario_id},
+        )

@@ -38,6 +38,8 @@ crash.log
 # Playwright artifacts
 test-results/
 playwright-report/
+# Page snapshots the Playwright MCP server writes during local checks
+.playwright-mcp/
 
 # Kickoff pack archive
 *.zip

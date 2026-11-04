@@ -1,6 +1,7 @@
 """R9 — peer distribution, attempt records, storage settings and no free text in logs."""
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -73,8 +74,9 @@ def test_r9_not_expired_filter() -> None:
 def test_r9_store_exposes_no_raw_attempt_read() -> None:
     # Any new read of raw attempts must filter with not_expired; adding one fails this test
     # on purpose so the reviewer checks it.
+    # The R22 monthly buckets are counters read by key, not raw attempts.
     methods = {name for name in vars(AttemptStore) if not name.startswith("_")}
-    assert methods == {"record", "peer_counts"}
+    assert methods == {"record", "peer_counts", "add_to_month", "window_counts"}
 
 
 def test_r9_attempt_record_has_only_structured_fields() -> None:
@@ -94,6 +96,12 @@ class _FailingStore:
         raise StorageError("down")
 
     def peer_counts(self, scenario_id: str, version: int) -> PeerCounts:
+        raise StorageError("down")
+
+    def add_to_month(self, attempt: AttemptRecord) -> None:
+        raise StorageError("down")
+
+    def window_counts(self, scenario_id: str, version: int, months: Sequence[str]) -> PeerCounts:
         raise StorageError("down")
 
 

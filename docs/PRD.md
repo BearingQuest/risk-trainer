@@ -4,12 +4,12 @@
 |---|---|
 | Working name | Risk Trainer ("Fix Two of Five") |
 | Owner | Dusten Harrison, CISSP |
-| Version | 1.15 — 29 Oct 2026 (the Bearing Quest family strip at the top of every page replaces the footer mark (§6)) |
-| Status | Owner-reviewed and spec-reviewed; groups 5.1–5.4 built; v1 launched 6 Oct 2026; v1.1 in progress (authoring MCP server merged 14 Oct; two scenarios drafted through it still to come); read-only smoke checks run after each deploy. |
+| Version | 1.16 — 3 Nov 2026 (public stats page, R22, group 5.6, v1.3) |
+| Status | Owner-reviewed and spec-reviewed; groups 5.1–5.4 built; v1 launched 6 Oct 2026; v1.1 complete (7 approved scenarios); group 5.6 (public stats, v1.3) in progress; read-only smoke checks run after each deploy. |
 | Build path | Claude Code (plan mode) builds; a read-only Claude review agent, CodeQL and Semgrep review each pull request in GitHub Actions; the owner approves. See the Risk Trainer Build Guide. |
 | Cost constraint | $0 beyond the owner's Claude subscription |
 
-Claude Code reads this document at the start of each build group (see `AGENTS.md`). Section 5 is split into five groups (5.1–5.5), built in that order. Groups 5.1–5.3 make up the v1 launch; group 5.4 follows as v1.1; group 5.5 is a stretch goal (v1.2). Anything not written here is out of scope until the owner adds it.
+Claude Code reads this document at the start of each build group (see `AGENTS.md`). Section 5 is split into six groups (5.1–5.6). Groups 5.1–5.3 make up the v1 launch; group 5.4 follows as v1.1; group 5.5 is a stretch goal (v1.2); group 5.6, the public stats page, is v1.3. Group 5.6 doesn't depend on 5.5 and may ship before it. Anything not written here is out of scope until the owner adds it.
 
 ---
 
@@ -167,7 +167,7 @@ Acceptance criteria use EARS-style phrasing. "The system" means the deployed web
 - IF storage fails, THEN the learner SHALL still get the score and debrief, without peer results.
 - `STORAGE_BACKEND` (`memory` or `dynamodb`) SHALL have no default outside `rt preview`, and the app SHALL refuse to start with `memory` inside Lambda (`AWS_LAMBDA_FUNCTION_NAME` set).
 
-**R10 — Static pages.** The system SHALL include About, Privacy and "The four responses" reference pages. About SHALL state that scenarios are AI-drafted, fact-checked and human-approved, and that the site is not affiliated with or endorsed by ISC2. Until R19 ships, About SHALL NOT mention the MCP connector. Privacy SHALL state that the site sets one session cookie, used only to protect form submissions, with no tracking.
+**R10 — Static pages.** The system SHALL include About, Privacy and "The four responses" reference pages. About SHALL state that scenarios are AI-drafted, fact-checked and human-approved, and that the site is not affiliated with or endorsed by ISC2. Until R19 ships, About SHALL NOT mention the MCP connector. Privacy SHALL state that the site sets one session cookie, used only to protect form submissions, with no tracking. Privacy SHALL also describe the stats page and its monthly totals (R22).
 
 ### 5.3 Group: `aws-deployment`
 
@@ -192,7 +192,7 @@ Acceptance criteria use EARS-style phrasing. "The system" means the deployed web
 **R14 — CI/CD.**
 - Deployments SHALL use GitHub Actions with OIDC federation to AWS; no long-lived AWS keys.
 - WHEN a change merges to `main`, THEN CI SHALL produce a Terraform plan, and apply SHALL wait for manual approval through a protected GitHub environment.
-- WHEN apply succeeds, THEN CI SHALL run read-only smoke checks (GET only) against the deployed URL, with no AWS credentials or secrets: security headers, a scenario page with five findings, and the stylesheet served `immutable` under the commit's static asset version. They SHALL NOT submit a form or record an attempt.
+- WHEN apply succeeds, THEN CI SHALL run read-only smoke checks (GET only) against the deployed URL, with no AWS credentials or secrets: security headers, a scenario page with five findings, `/stats` returning 200 (whatever the counts), and the stylesheet served `immutable` under the commit's static asset version. They SHALL NOT submit a form or record an attempt.
 - The build SHALL package only `approved` scenarios (`rt package`). IF any approved scenario fails validation, THEN the build SHALL fail and write no package. The same inputs SHALL produce a byte-identical package. Changes to `README.md` or files under `docs/` SHALL NOT change the package. The package SHALL include the repository's `LICENSE` file in the app's dist-info, so a change to `LICENSE` changes the package.
 
 **R15 — Observability and cost.**
@@ -242,12 +242,24 @@ Acceptance criteria use EARS-style phrasing. "The system" means the deployed web
 - Before building R19–R20 in full, a one-tool spike SHALL confirm that Claude accepts the deployed endpoint as a custom connector with no authentication.
 - WHEN a learner adds the endpoint as a Claude custom connector, THEN they SHALL be able to list scenarios, fetch one, submit answers and receive the debrief in chat.
 
+### 5.6 Group: `public-stats` (v1.3)
+
+**R22 — Public stats page.**
+- WHEN a web submission records a new attempt (R9), THEN the system SHALL add it to a monthly stats bucket for that scenario version (UTC calendar month) with one atomic UpdateItem ADD: the attempt count, the count for each finding's treatment, the approver for each accept answer, and the total score. The bucket SHALL carry a TTL at the start of the seventh month after its month. A resubmitted form SHALL NOT be added twice. IF the bucket update fails, THEN the attempt SHALL stay recorded, the learner SHALL still get the debrief, and the failure SHALL be logged. The peer aggregates (R9) SHALL be unchanged.
+- The system SHALL serve `GET /stats`, a server-rendered page that needs no JavaScript. Other methods SHALL be refused (405). It SHALL add no write path.
+- The page SHALL total the buckets over a rolling window of the current month and the five before it, starting no earlier than the first deploy month (`STATS_FIRST_MONTH`), with no backfill. It SHALL say "since <month>" and count only the current version of each approved scenario.
+- It SHALL show site-wide attempts and attempts by difficulty. Per scenario, it SHALL show attempts, the median score, score bands, and per finding the share choosing the preferred answer and the most common other choice. On findings where accept is preferred, it SHALL show the share of learners who chose accept and named the security team or IT operations as the approver (the trap rate).
+- Privacy: totals only. A scenario SHALL show no figures until its window total reaches `PEER_MIN_SAMPLE` (the same setting as R9); single months are not checked on their own. Site-wide and per-difficulty totals SHALL count only scenarios at or above it. The trap rate SHALL show only when at least `PEER_MIN_SAMPLE` learners chose accept on that finding. Percentages SHALL be whole numbers. The page SHALL NOT show submission or session IDs, dates or times finer than the month, per-attempt rows or free text.
+- The page SHALL state in plain words that learners are self-selected, the totals include the owner's own test attempts, the window rolls over about six months, and it is a learning tool, not research.
+- Each instance SHALL cache the totals for 5 minutes. IF the totals can't be read, THEN the page SHALL return 503 with a plain message, and the failure SHALL be cached for 30 seconds.
+- The main navigation SHALL link to the page, and the Privacy page SHALL describe the monthly totals, their retention, what the stats page shows and the minimum sample.
+
 ## 6. Non-functional requirements
 
 | Area | Requirement |
 |---|---|
 | Security | OWASP ASVS Level 1 baseline. Signed session cookie (HttpOnly, Secure, SameSite=Lax); CSRF token on every state-changing request; server-side input length limits; Jinja autoescape on; htmx vendored and served from the app's own origin. MCP servers follow the least-privilege tool sets in R16 and R19. |
-| Privacy | No accounts and no direct identifiers (name, email, IP address, user agent) in application data. The app keeps a pseudonymous session ID in a signed cookie and records structured choices with a timestamp per attempt (R9). A per-session submission counter, keyed by that random session ID, expires after 2 minutes (R13). Free text is not persisted or logged, whether it arrives through the web or MCP. Outside the app: CloudWatch Logs (14 days; request IDs, no IP addresses logged by the app), CloudFront standard logging off, AWS WAF sampled requests (include IP addresses; AWS keeps them for up to 3 hours), and GitHub Actions logs (no learner data). The Privacy page lists each of these with its retention. |
+| Privacy | No accounts and no direct identifiers (name, email, IP address, user agent) in application data. The app keeps a pseudonymous session ID in a signed cookie and records structured choices with a timestamp per attempt (R9). A per-session submission counter, keyed by that random session ID, expires after 2 minutes (R13). Monthly stats totals, not linked to any attempt, expire about 7 months after their month (R22). Free text is not persisted or logged, whether it arrives through the web or MCP. Outside the app: CloudWatch Logs (14 days; request IDs, no IP addresses logged by the app), CloudFront standard logging off, AWS WAF sampled requests (include IP addresses; AWS keeps them for up to 3 hours), and GitHub Actions logs (no learner data). The Privacy page lists each of these with its retention. |
 | Reliability | No runtime dependency on any LLM. The web exercise works whether or not the MCP endpoint exists. |
 | Performance | p95 server time under 500 ms for web routes at demo load (warm). Cold starts of up to about 5 s are acceptable for v1. |
 | Cost | $0 target: AWS always-free limits, CloudFront Free flat-rate plan where eligible, no paid APIs, no custom domain in v1. The hard ceilings in R13 and R15 cap spend; budget alerts only detect drift. |
@@ -309,6 +321,8 @@ v1 launches after groups 5.1–5.3. The scenarios may be drafted in a Claude cha
 **v1.1 (after launch):** group 5.4. The authoring MCP server has been verified in MCP Inspector and used from Claude to draft at least 2 new scenarios.
 
 **v1.2 (stretch):** group 5.5, the learner MCP endpoint.
+
+**v1.3:** group 5.6, the public stats page (R22). It doesn't depend on group 5.5.
 
 ## 10. Deferred decisions (resolve in the Claude Code plan for the group that needs them)
 

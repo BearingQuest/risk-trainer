@@ -1,15 +1,18 @@
-"""Attempt records and the store interface (PRD R9).
+"""Attempt records and the store interface (PRD R9, R22).
 
 A record holds structured choices only: no rationale text, overall note, IP address or user
-agent. Raw attempts carry a TTL; aggregate counters persist. Nothing in v1 reads raw attempts
-back. Any read added later must drop expired records with `not_expired`, because DynamoDB
-deletes expired items on its own schedule (typically within a few days).
+agent. Raw attempts carry a TTL; aggregate counters persist. Monthly stats buckets (R22) are
+counters too, read by key and expiring about seven months after their month. Nothing reads raw
+attempts back. Any read added later must drop expired records with `not_expired`, because
+DynamoDB deletes expired items on its own schedule (typically within a few days).
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+from risk_trainer.domain.stats import bucket_counter_names
 from risk_trainer.domain.treatments import Approver, Treatment
 
 ATTEMPT_TTL = timedelta(days=180)
@@ -54,6 +57,13 @@ def not_expired(expires: int, now: datetime | None = None) -> bool:
     return expires > int(current.timestamp())
 
 
+def month_counters(attempt: AttemptRecord) -> list[str]:
+    """Counters an attempt adds to its monthly stats bucket, besides the attempt count."""
+    return bucket_counter_names(
+        ((c.finding_id, c.treatment, c.approver) for c in attempt.choices), attempt.score
+    )
+
+
 class AttemptStore(Protocol):
     def record(self, attempt: AttemptRecord) -> bool:
         """Store the attempt and bump the aggregates. False if submit_id was already recorded."""
@@ -61,4 +71,12 @@ class AttemptStore(Protocol):
 
     def peer_counts(self, scenario_id: str, version: int) -> PeerCounts:
         """Aggregate counters for one scenario version."""
+        ...
+
+    def add_to_month(self, attempt: AttemptRecord) -> None:
+        """Add the attempt to its scenario version's monthly stats bucket in one atomic update."""
+        ...
+
+    def window_counts(self, scenario_id: str, version: int, months: Sequence[str]) -> PeerCounts:
+        """Monthly stats buckets for one scenario version, summed over the given months."""
         ...

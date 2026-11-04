@@ -17,13 +17,23 @@
     </tr>
     <tr id="privacy-attempts">
       <th scope="row">Your answers</th>
-      <td>The scenario and version, the response and approver you chose for each finding, your score and the time. Used for peer comparisons.</td>
+      <td>The scenario and version, the response and approver you chose for each finding, your score and the time. Used for peer comparisons. Your answers are also added to monthly totals that aren't linked to your attempt; the stats page reads those totals, not the attempts.</td>
       <td>180 days, then deleted (the database removes expired records within a few days)</td>
     </tr>
     <tr id="privacy-aggregates">
       <th scope="row">Peer totals</th>
       <td>Counts of how many learners chose each response. Not linked to any one attempt.</td>
       <td>Kept</td>
+    </tr>
+    <tr id="privacy-monthly">
+      <th scope="row">Monthly stats totals</th>
+      <td>Per scenario and calendar month: how many learners chose each response and approver, and how many got each score. Not linked to any one attempt.</td>
+      <td>About 7 months, then deleted (the database removes expired records within a few days)</td>
+    </tr>
+    <tr id="privacy-stats">
+      <th scope="row">Public <a href="/stats">Learner stats</a> page</th>
+      <td>Shows totals only, read from the monthly totals for about the last six months. A scenario shows nothing until it has at least {{ min_sample }} attempts in that window, and percentages are rounded to whole numbers. It never shows individual attempts, times or anything you typed.</td>
+      <td>Nothing extra kept; worked out from the monthly totals</td>
     </tr>
     <tr id="privacy-rate-limit">
       <th scope="row">Submission counter</th>

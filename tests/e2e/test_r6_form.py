@@ -53,7 +53,7 @@ def test_r6_complete_scenario_by_keyboard_only(page: Page, base_url: str) -> Non
 def test_r6_usable_at_360px(browser: Browser, base_url: str) -> None:
     context = browser.new_context(viewport={"width": 360, "height": 780})
     page = context.new_page()
-    for path in ("/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy"):
+    for path in ("/", f"/s/{RT001_ID}", "/responses", "/about", "/privacy", "/stats"):
         page.goto(base_url + path)
         assert no_horizontal_scroll(page), path
     page.goto(f"{base_url}/s/{RT001_ID}")

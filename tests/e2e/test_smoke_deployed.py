@@ -62,6 +62,14 @@ def test_smoke_scenario_page_shows_five_findings(
     assert parse_page(response.text).findings == FINDINGS_PER_SCENARIO
 
 
+def test_smoke_stats_page_ok(client: httpx.Client) -> None:
+    # R22: works whatever the counts are, including before any scenario reaches the minimum.
+    response = client.get("/stats")
+    assert response.status_code == 200
+    assert "<h1>Learner stats</h1>" in response.text
+    assert "This is a learning tool, not research." in response.text
+
+
 def test_smoke_stylesheet_is_immutable(client: httpx.Client, home: httpx.Response) -> None:
     (href,) = parse_page(home.text).stylesheet_hrefs
     # The version hashes this checkout's static/ folder, so a match means this commit is live.

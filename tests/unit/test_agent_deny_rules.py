@@ -7,7 +7,8 @@ from tests.helpers import REPO_ROOT
 
 SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 
-# Rules match command text, so they're a guardrail, not a sandbox (docs/decisions.md 2026-11-05).
+# Rules match command text, so they're a guardrail, not a sandbox (docs/decisions.md 2026-11-05,
+# supply-chain and agent-rules hardening rows).
 REQUIRED_DENY = {
     "Bash(gh pr merge:*)",
     "Bash(terraform apply:*)",
@@ -18,6 +19,23 @@ REQUIRED_DENY = {
     "Bash(uv run rt retire:*)",
 }
 REQUIRED_ASK = {"Bash(git push:*)", "Bash(gh pr:*)", "Bash(gh api:*)", "Bash(python3:*)"}
+
+# Options before the subcommand (`terraform -chdir=… apply`) slip past the prefix rules above.
+# A trailing `*` matches the bare form only when it's the rule's only wildcard, hence the pairs.
+OPTION_FIRST_DENY = {
+    "Bash(terraform * apply)",
+    "Bash(terraform * apply *)",
+    "Bash(terraform * destroy)",
+    "Bash(terraform * destroy *)",
+    "Bash(gh * pr merge)",
+    "Bash(gh * pr merge *)",
+    "Bash(uv run * rt approve)",
+    "Bash(uv run * rt approve *)",
+    "Bash(uv run * rt retire)",
+    "Bash(uv run * rt retire *)",
+}
+# Ask, not deny, so a legitimate `git -C … push` still just prompts.
+OPTION_FIRST_ASK = {"Bash(git * push)", "Bash(git * push *)"}
 
 
 def rules(kind: str) -> list[str]:
@@ -42,11 +60,17 @@ def test_recursive_force_delete_is_denied() -> None:
 
 def test_human_gates_are_denied() -> None:
     # Merging, Terraform apply/destroy and content approval stay with the owner (AGENTS.md).
-    assert set(deny_rules()) >= REQUIRED_DENY
+    assert set(deny_rules()) >= REQUIRED_DENY | OPTION_FIRST_DENY
 
 
 def test_outward_facing_commands_ask_first() -> None:
-    assert set(rules("ask")) >= REQUIRED_ASK
+    assert set(rules("ask")) >= REQUIRED_ASK | OPTION_FIRST_ASK
+
+
+def test_auto_and_bypass_modes_are_disabled() -> None:
+    settings: dict[str, Any] = json.loads(SETTINGS.read_text(encoding="utf-8"))
+    assert settings["permissions"]["disableAutoMode"] == "disable"
+    assert settings["permissions"]["disableBypassPermissionsMode"] == "disable"
 
 
 def test_project_settings_grant_no_allow_rules() -> None:

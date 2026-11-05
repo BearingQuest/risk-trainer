@@ -1,6 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
+    "disableAutoMode": "disable",
+    "disableBypassPermissionsMode": "disable",
     "deny": [
       "Edit(/infra/bootstrap/**)",
       "Bash(rm -rf *)",
@@ -10,13 +12,25 @@
       "Bash(rt approve:*)",
       "Bash(rt retire:*)",
       "Bash(uv run rt approve:*)",
-      "Bash(uv run rt retire:*)"
+      "Bash(uv run rt retire:*)",
+      "Bash(terraform * apply)",
+      "Bash(terraform * apply *)",
+      "Bash(terraform * destroy)",
+      "Bash(terraform * destroy *)",
+      "Bash(gh * pr merge)",
+      "Bash(gh * pr merge *)",
+      "Bash(uv run * rt approve)",
+      "Bash(uv run * rt approve *)",
+      "Bash(uv run * rt retire)",
+      "Bash(uv run * rt retire *)"
     ],
     "ask": [
       "Bash(git push:*)",
       "Bash(gh pr:*)",
       "Bash(gh api:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git * push)",
+      "Bash(git * push *)"
     ]
   }
 }

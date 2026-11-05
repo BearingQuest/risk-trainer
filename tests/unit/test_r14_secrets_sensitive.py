@@ -54,7 +54,6 @@ def test_r14_alert_email_comes_from_a_secret_not_a_variable() -> None:
 def test_r14_plan_is_published_only_as_redacted_text_after_a_leak_check() -> None:
     text = DEPLOY.read_text(encoding="utf-8")
     assert "-json" not in text, "JSON plans contain sensitive values in plaintext"
-    assert "upload-artifact" not in text, "no plan file leaves the runner"
     plan: list[dict[str, Any]] = yaml.safe_load(text)["jobs"]["plan"]["steps"]
     names = [step.get("name", "") for step in plan]
     leak = names.index("Leak check (no secret in the plan text)")
@@ -66,3 +65,22 @@ def test_r14_plan_is_published_only_as_redacted_text_after_a_leak_check() -> Non
     assert '"$ORIGIN" "$ALERT_EMAIL"' in leak_run
     assert "show -no-color tfplan > plan.txt" in " ".join(s.get("run", "") for s in plan)
     assert "GITHUB_STEP_SUMMARY" in plan[summary]["run"]
+
+
+def test_r14_only_the_sbom_leaves_the_runner_from_a_job_without_aws_access() -> None:
+    text = DEPLOY.read_text(encoding="utf-8")
+    jobs: dict[str, dict[str, Any]] = yaml.safe_load(text)["jobs"]
+
+    def uploads(job: dict[str, Any]) -> list[dict[str, Any]]:
+        return [s for s in job["steps"] if "upload-artifact" in s.get("uses", "")]
+
+    # No plan file leaves the runner: the Terraform jobs upload nothing.
+    for name in ("plan", "apply"):
+        assert not uploads(jobs[name]), name
+    assert text.count("upload-artifact") == 1
+    (job,) = [j for j in jobs.values() if uploads(j)]
+    assert "id-token" not in job.get("permissions", {})
+    assert not any("terraform" in s.get("run", "") + s.get("uses", "") for s in job["steps"])
+    assert not any("configure-aws-credentials" in s.get("uses", "") for s in job["steps"])
+    (upload,) = uploads(job)
+    assert upload["with"]["path"] == "dist/sbom.cdx.json"

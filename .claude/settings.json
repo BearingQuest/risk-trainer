@@ -3,7 +3,20 @@
   "permissions": {
     "deny": [
       "Edit(/infra/bootstrap/**)",
-      "Bash(rm -rf *)"
+      "Bash(rm -rf *)",
+      "Bash(gh pr merge:*)",
+      "Bash(terraform apply:*)",
+      "Bash(terraform destroy:*)",
+      "Bash(rt approve:*)",
+      "Bash(rt retire:*)",
+      "Bash(uv run rt approve:*)",
+      "Bash(uv run rt retire:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(python3:*)"
     ]
   }
 }

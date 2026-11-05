@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Version updates for the uv lock. Minor and patch updates share one PR; majors stay separate.
+  # Security updates and alerts are repository settings, not this file.
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      uv-minor-and-patch:
+        update-types: [minor, patch]

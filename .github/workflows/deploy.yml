@@ -85,6 +85,30 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  sbom:
+    name: SBOM (runtime dependencies)
+    # Its own job so the artifact upload never runs with id-token: write. Same commit and uv.lock
+    # as the package; it doesn't gate plan or apply.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Install
+        run: uv sync --locked
+      - name: SBOM of the packaged runtime dependencies
+        run: make sbom
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lambda-sbom
+          path: dist/sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
   apply:
     name: Apply to prod (needs approval)
     needs: plan

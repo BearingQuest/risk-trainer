@@ -13,6 +13,8 @@ from tests.helpers import REPO_ROOT
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 CI = WORKFLOWS / "ci.yml"
 DEPLOY = WORKFLOWS / "deploy.yml"
+SCHEDULED_AUDIT = WORKFLOWS / "scheduled-audit.yml"
+DEPENDABOT = REPO_ROOT / ".github" / "dependabot.yml"
 TERRAFORM_JOBS = ("plan", "apply")
 
 
@@ -82,8 +84,8 @@ def test_r14_both_jobs_build_the_package_before_terraform() -> None:
         assert package < terraform
 
 
-def test_r14_deploy_has_exactly_plan_apply_and_smoke() -> None:
-    assert set(load(DEPLOY)["jobs"]) == {*TERRAFORM_JOBS, "smoke"}
+def test_r14_deploy_has_exactly_plan_apply_smoke_and_sbom() -> None:
+    assert set(load(DEPLOY)["jobs"]) == {*TERRAFORM_JOBS, "smoke", "sbom"}
 
 
 def test_r14_smoke_runs_after_apply_read_only() -> None:
@@ -143,6 +145,78 @@ def test_r14_e2e_command_matches_makefile_recipe() -> None:
 
 
 def test_r14_no_template_expressions_inside_run_scripts() -> None:
-    for job in load(DEPLOY)["jobs"].values():
-        for step in steps(job):
-            assert "${{" not in step.get("run", ""), step.get("name")
+    for path in (DEPLOY, SCHEDULED_AUDIT):
+        for job in load(path)["jobs"].values():
+            for step in steps(job):
+                assert "${{" not in step.get("run", ""), step.get("name")
+
+
+def test_r14_sbom_job_publishes_the_sbom_read_only() -> None:
+    workflow = load(DEPLOY)
+    sbom = workflow["jobs"]["sbom"]
+    assert sbom["permissions"] == {"contents": "read"}
+    assert "needs" not in sbom and "environment" not in sbom
+    assert sbom["runs-on"] == "ubuntu-24.04"
+    assert sbom["timeout-minutes"] <= 10
+    ci_uses = {s["uses"] for s in steps(load(CI)["jobs"]["pip-audit"]) if "uses" in s}
+    (checkout,) = [s for s in steps(sbom) if "actions/checkout" in s.get("uses", "")]
+    assert checkout["uses"] in ci_uses
+    assert checkout["with"] == {"persist-credentials": False}
+    runs = [s.get("run", "") for s in steps(sbom)]
+    assert runs.index("uv sync --locked") < runs.index("make sbom")
+    (upload,) = [s for s in steps(sbom) if "actions/upload-artifact" in s.get("uses", "")]
+    assert runs.index("make sbom") < steps(sbom).index(upload)
+    assert upload["with"] == {
+        "name": "lambda-sbom",
+        "path": "dist/sbom.cdx.json",
+        "if-no-files-found": "error",
+        "retention-days": 90,
+    }
+    others = {s["uses"] for s in steps(sbom) if "uses" in s} - {upload["uses"]}
+    assert others == ci_uses, "same pinned checkout and setup-uv as CI; nothing else"
+    for name in TERRAFORM_JOBS:
+        assert "make sbom" not in [s.get("run", "") for s in steps(workflow["jobs"][name])]
+
+
+def test_r14_scheduled_audit_runs_daily_on_main() -> None:
+    workflow = load(SCHEDULED_AUDIT)
+    triggers = workflow[True]  # PyYAML reads the bare `on` key as True
+    assert set(triggers) == {"schedule", "workflow_dispatch"}
+    (schedule,) = triggers["schedule"]
+    minute, hour, *rest = schedule["cron"].split()
+    assert minute.isdigit() and minute != "0", "run off the hour"
+    assert hour.isdigit() and rest == ["*", "*", "*"], "once a day"
+    assert workflow["concurrency"]["group"]
+    (audit,) = workflow["jobs"].values()
+    assert audit["if"] == "github.ref == 'refs/heads/main'"
+
+
+def test_r14_scheduled_audit_is_read_only_and_bounded() -> None:
+    workflow = load(SCHEDULED_AUDIT)
+    assert workflow["permissions"] == {"contents": "read"}
+    (audit,) = workflow["jobs"].values()
+    assert "permissions" not in audit
+    assert audit["runs-on"] == "ubuntu-24.04"
+    assert audit["timeout-minutes"] <= 10
+    (checkout,) = [s for s in steps(audit) if "actions/checkout" in s.get("uses", "")]
+    assert checkout["with"] == {"persist-credentials": False}
+
+
+def test_r14_scheduled_audit_matches_ci_pins_and_runs_make_audit() -> None:
+    ci_uses = {s["uses"] for s in steps(load(CI)["jobs"]["pip-audit"]) if "uses" in s}
+    (audit,) = load(SCHEDULED_AUDIT)["jobs"].values()
+    assert {s["uses"] for s in steps(audit) if "uses" in s} == ci_uses
+    assert "make audit" in [s.get("run", "") for s in steps(audit)]
+
+
+def test_r14_dependabot_updates_uv_monthly_grouped_with_cooldown() -> None:
+    config = load(DEPENDABOT)
+    assert config["version"] == 2
+    (update,) = config["updates"]
+    assert update["package-ecosystem"] == "uv"
+    assert update["directory"] == "/"
+    assert update["schedule"]["interval"] == "monthly"
+    assert update["cooldown"]["default-days"] == 7
+    assert 1 <= update["open-pull-requests-limit"] <= 5
+    (group,) = update["groups"].values()
+    assert sorted(group["update-types"]) == ["minor", "patch"]  # majors stay separate PRs

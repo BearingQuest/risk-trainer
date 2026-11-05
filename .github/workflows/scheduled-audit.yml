@@ -1,0 +1,33 @@
+name: Scheduled audit
+
+# R14: audit the locked dependencies daily on main, so a new advisory fails here
+# without waiting for the next pull request. GitHub notifies whoever last changed the cron line.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: audit
+    # A schedule always runs on the default branch; this also stops a manual run elsewhere.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Install
+        run: uv sync --locked
+      - name: Audit locked dependencies
+        run: make audit

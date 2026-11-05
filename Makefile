@@ -1,4 +1,4 @@
-.PHONY: check lint types test validate audit format e2e package smoke
+.PHONY: check lint types test validate audit format e2e package sbom smoke
 
 check: lint types test validate
 
@@ -46,3 +46,9 @@ package:
 	# metadata (uv_cache.json) holds the install time and would make every zip different.
 	uv run python -m zipfile -e build/wheel/*.whl $(LAMBDA_BUILD)
 	uv run rt package --site-packages $(LAMBDA_BUILD) --out dist/lambda.zip
+
+# CycloneDX SBOM of the Lambda's runtime dependencies (R14), kept outside the zip.
+# uv's CycloneDX export is a preview feature (see docs/decisions.md for the fallback).
+sbom:
+	mkdir -p dist
+	uv export --locked --no-dev --no-emit-project --format cyclonedx1.5 --preview-features sbom-export --quiet -o dist/sbom.cdx.json

@@ -14,6 +14,7 @@ WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 CI = WORKFLOWS / "ci.yml"
 DEPLOY = WORKFLOWS / "deploy.yml"
 SCHEDULED_AUDIT = WORKFLOWS / "scheduled-audit.yml"
+REVIEW = WORKFLOWS / "claude-code-review.yml"
 DEPENDABOT = REPO_ROOT / ".github" / "dependabot.yml"
 TERRAFORM_JOBS = ("plan", "apply")
 
@@ -207,6 +208,20 @@ def test_r14_scheduled_audit_matches_ci_pins_and_runs_make_audit() -> None:
     (audit,) = load(SCHEDULED_AUDIT)["jobs"].values()
     assert {s["uses"] for s in steps(audit) if "uses" in s} == ci_uses
     assert "make audit" in [s.get("run", "") for s in steps(audit)]
+
+
+def test_r14_review_workflow_skips_dependabot_and_matches_ci_checkout() -> None:
+    # Dependabot runs get no Actions secrets; skip them instead of letting the bot in.
+    assert "allowed_bots" not in REVIEW.read_text(encoding="utf-8")
+    (review,) = load(REVIEW)["jobs"].values()
+    assert review["if"] == "github.actor != 'dependabot[bot]'"
+    (checkout,) = [s["uses"] for s in steps(review) if "actions/checkout" in s.get("uses", "")]
+    ci_checkouts = {
+        s["uses"]
+        for s in steps(load(CI)["jobs"]["check"])
+        if "actions/checkout" in s.get("uses", "")
+    }
+    assert ci_checkouts == {checkout}
 
 
 def test_r14_dependabot_updates_uv_monthly_grouped_with_cooldown() -> None:

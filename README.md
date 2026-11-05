@@ -13,6 +13,7 @@ make audit      # pip-audit against the locked dependencies
 uv run playwright install chromium   # once, for the browser tests
 make e2e        # Playwright tests of the exercise form (keyboard, 360 px, slot limit)
 make package    # Lambda zip at dist/lambda.zip (arm64, Python 3.14, approved scenarios only)
+make sbom       # CycloneDX SBOM of the Lambda's runtime dependencies at dist/sbom.cdx.json
 ```
 
 ## The `rt` CLI

@@ -41,7 +41,7 @@ def test_r14_trust_policies_use_exact_subjects() -> None:
     )
     assert 'plan_sub   = "repo:${local.gh_repo}:ref:refs/heads/main"' in text
     assert 'deploy_sub = "repo:${local.gh_repo}:environment:prod"' in text
-    assert re.search(r'variable\s+"github_owner_id"\s*\{[^}]*default\s*=\s*"54679392"', text)
+    assert re.search(r'variable\s+"github_owner_id"\s*\{[^}]*default\s*=\s*"352613740"', text)
     assert re.search(r'variable\s+"github_repository_id"\s*\{[^}]*default\s*=\s*"1398551921"', text)
     assert not re.search(r'_sub\s*=\s*"[^"]*\*', text), "no wildcard in an OIDC subject"
 

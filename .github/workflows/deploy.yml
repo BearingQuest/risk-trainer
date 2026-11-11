@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # The owner approves here (required reviewer, main only). The OIDC subject becomes
-    # repo:dustenatx@54679392/risk-trainer@1398551921:environment:prod, the only one the deploy role trusts.
+    # repo:BearingQuest@352613740/risk-trainer@1398551921:environment:prod, the only one the deploy role trusts.
     environment: prod
     permissions:
       contents: read

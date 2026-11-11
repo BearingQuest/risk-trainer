@@ -48,7 +48,7 @@ run "r14_oidc_audience_and_subjects" {
     condition = jsondecode(aws_iam_role.gha["plan"].assume_role_policy).Statement[0].Condition == {
       StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:dustenatx@54679392/risk-trainer@1398551921:ref:refs/heads/main"
+        "token.actions.githubusercontent.com:sub" = "repo:BearingQuest@352613740/risk-trainer@1398551921:ref:refs/heads/main"
       }
     }
     error_message = "The plan role must trust only the main branch, with StringEquals on aud and sub."
@@ -58,7 +58,7 @@ run "r14_oidc_audience_and_subjects" {
     condition = jsondecode(aws_iam_role.gha["deploy"].assume_role_policy).Statement[0].Condition == {
       StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:dustenatx@54679392/risk-trainer@1398551921:environment:prod"
+        "token.actions.githubusercontent.com:sub" = "repo:BearingQuest@352613740/risk-trainer@1398551921:environment:prod"
       }
     }
     error_message = "The deploy role must trust only the prod environment, with StringEquals on aud and sub."

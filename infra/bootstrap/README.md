@@ -6,8 +6,8 @@ This module creates what the deploy pipeline needs before it can run. The owner 
 |---|---|
 | S3 bucket `risk-trainer-tfstate-<account>` | Terraform state for `bootstrap/` and `prod/`. Versioned, SSE-S3, public access blocked, TLS only, native lock files (R11). `prevent_destroy` is on. |
 | GitHub OIDC provider | Audience `sts.amazonaws.com`. Skip it with `create_oidc_provider = false` if the account already has one. |
-| Role `risk-trainer-gha-plan` | Trusted only by `repo:dustenatx@54679392/risk-trainer@1398551921:ref:refs/heads/main`. Read access to the app resources. On state it can only take the lock file. |
-| Role `risk-trainer-gha-deploy` | Trusted only by `repo:dustenatx@54679392/risk-trainer@1398551921:environment:prod`. Creates and updates `risk-trainer-*` resources. |
+| Role `risk-trainer-gha-plan` | Trusted only by `repo:BearingQuest@352613740/risk-trainer@1398551921:ref:refs/heads/main`. Read access to the app resources. On state it can only take the lock file. |
+| Role `risk-trainer-gha-deploy` | Trusted only by `repo:BearingQuest@352613740/risk-trainer@1398551921:environment:prod`. Creates and updates `risk-trainer-*` resources. |
 | Policy `risk-trainer-app-boundary` | Permissions boundary for the app's Lambda role. The deploy role can only create that role with this boundary attached. |
 
 Guardrails on both roles deny four things:
@@ -16,7 +16,7 @@ Guardrails on both roles deny four things:
 - any `pricingplanmanager` action
 - writing to the bootstrap state
 
-**OIDC subject format.** This repository uses GitHub's immutable subject format, `repo:<owner>@<owner_id>/<name>@<repo_id>:…`, so the trust policies match on the numeric IDs as well as the names (`github_owner_id`, `github_repository_id`). It's safer because names can be reused: if the account or repository is renamed or deleted, someone else could take the old name and mint a token with the old `repo:dustenatx/risk-trainer:…` subject. They can't get the original IDs. To find the IDs: `gh api repos/dustenatx/risk-trainer --jq '.owner.id, .id'`.
+**OIDC subject format.** This repository uses GitHub's immutable subject format, `repo:<owner>@<owner_id>/<name>@<repo_id>:…`, so the trust policies match on the numeric IDs as well as the names (`github_owner_id`, `github_repository_id`). It's safer because names can be reused: if the account or repository is renamed or deleted, someone else could take the old name and mint a token with the old `repo:BearingQuest/risk-trainer:…` subject. They can't get the original IDs. To find the IDs: `gh api repos/BearingQuest/risk-trainer --jq '.owner.id, .id'`.
 
 Everything is in us-east-2, except that the deploy role's WAF permissions name the us-east-1 web ACL ARN, because a CloudFront-scope web ACL must live there.
 

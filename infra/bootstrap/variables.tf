@@ -17,7 +17,7 @@ variable "region" {
 variable "github_repository" {
   description = "GitHub repository (owner/name) whose workflows may assume the roles."
   type        = string
-  default     = "dustenatx/risk-trainer"
+  default     = "BearingQuest/risk-trainer"
 
   validation {
     condition     = can(regex("^[^/@:]+/[^/@:]+$", var.github_repository))
@@ -28,7 +28,7 @@ variable "github_repository" {
 variable "github_owner_id" {
   description = "Numeric GitHub ID of the repository owner, used in the immutable OIDC subject."
   type        = string
-  default     = "54679392"
+  default     = "352613740"
 
   validation {
     condition     = can(regex("^[0-9]+$", var.github_owner_id))

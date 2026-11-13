@@ -38,9 +38,12 @@ def violations(path: Path) -> list[str]:
             found.append(f"{line} passes method=")
         elif isinstance(node, ast.Attribute) and node.attr == "event_hooks":
             found.append(f"{line} touches event_hooks")
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-            if node.value.strip().upper() in WRITE_METHODS:
-                found.append(f"{line} names HTTP method {node.value!r}")
+        elif (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value.strip().upper() in WRITE_METHODS
+        ):
+            found.append(f"{line} names HTTP method {node.value!r}")
     return found
 
 

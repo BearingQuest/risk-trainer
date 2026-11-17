@@ -22,6 +22,17 @@ def test_r6_shows_context_and_capacity() -> None:
     assert "Remediation capacity: 2 findings." in html
 
 
+def test_r6_page_before_submission_holds_no_answer_key_text() -> None:
+    html = page().replace("&#39;", "'").replace("&#34;", '"').replace("&amp;", "&")
+    key = SCENARIO.answer_key
+    secrets = [key.overall_debrief, key.job_tip, key.exam_tip, *key.common_traps]
+    for entry in key.findings.values():
+        secrets += [entry.expert_rationale, *entry.key_considerations, *entry.why_not.values()]
+    for text in secrets:
+        if text:
+            assert text not in html
+
+
 def test_r6_shows_all_five_findings_with_signals() -> None:
     html = page().replace("&#39;", "'")
     for finding in SCENARIO.findings:

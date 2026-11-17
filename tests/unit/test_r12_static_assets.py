@@ -32,6 +32,15 @@ INTER_SHA256 = {
     ),
     "OFL-Inter.txt": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
 }
+# IBM Plex Mono 2.5.0 Latin1 files, as recorded in docs/decisions.md (2026-10-15).
+PLEX_MONO_SHA256 = {
+    "IBMPlexMono-Regular-Latin1.woff2": (
+        "e8993d946649b9d01abb1ed06d574b19d8ea3e66b5c3948602db335c44c18e56"
+    ),
+    "IBMPlexMono-Medium-Latin1.woff2": (
+        "41201b658a328b9d00368215c2f1102770f80b15952ab82631e4006255e6365d"
+    ),
+}
 # The Bearing Quest lockup, copied unedited (docs/decisions.md, 2026-10-29).
 LOCKUP_SHA256 = "723322e0e64f7e6e91877b5122746f09a9f4e6198e7b62910b25097e3d67b9d5"
 
@@ -159,6 +168,11 @@ def test_r12_all_four_fonts_are_present() -> None:
 
 @pytest.mark.parametrize(("name", "digest"), INTER_SHA256.items())
 def test_r12_inter_files_match_pinned_sha256(name: str, digest: str) -> None:
+    assert hashlib.sha256((STATIC_DIR / "fonts" / name).read_bytes()).hexdigest() == digest
+
+
+@pytest.mark.parametrize(("name", "digest"), PLEX_MONO_SHA256.items())
+def test_ui02_plex_mono_files_match_pinned_sha256(name: str, digest: str) -> None:
     assert hashlib.sha256((STATIC_DIR / "fonts" / name).read_bytes()).hexdigest() == digest
 
 

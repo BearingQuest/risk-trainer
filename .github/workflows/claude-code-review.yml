@@ -33,13 +33,21 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1.0.241
+        uses: anthropics/claude-code-action@4fa93a88de49bbef68b10eb15aabedf28ca0e1ed # v1.0.271
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
+          # The runner has no bubblewrap or socat, and this repo's .claude/settings.json
+          # enables the sandbox with failIfUnavailable, so the review would abort at start.
+          # --settings ranks above project settings, so it turns the sandbox off for this
+          # run only. The reviewer has no Bash (--allowedTools is the inline-comment tool
+          # alone) and the sandbox wraps only Bash, so nothing is lost; every deny rule in
+          # the repo settings still applies. Needs Claude Code 2.1.285 or later.
+          claude_args: |
+            --settings '{"sandbox":{"enabled":false}}'
+            --allowedTools "mcp__github_inline_comment__create_inline_comment"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 

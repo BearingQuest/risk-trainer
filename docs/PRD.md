@@ -4,7 +4,7 @@
 |---|---|
 | Working name | Risk Trainer ("Fix Two of Five") |
 | Owner | Dusten Harrison, CISSP |
-| Version | 1.17 — 5 Nov 2026 (supply-chain baseline, R14) |
+| Version | 1.18 — 17 Nov 2026 (engineering baseline 2.0 CI controls, R14) |
 | Status | Owner-reviewed and spec-reviewed; groups 5.1–5.4 built; v1 launched 6 Oct 2026; v1.1 complete (7 approved scenarios); group 5.6 (public stats, v1.3) in progress; read-only smoke checks run after each deploy. |
 | Build path | Claude Code (plan mode) builds; a read-only Claude review agent, CodeQL and Semgrep review each pull request in GitHub Actions; the owner approves. See the Risk Trainer Build Guide. |
 | Cost constraint | $0 beyond the owner's Claude subscription |
@@ -195,6 +195,7 @@ Acceptance criteria use EARS-style phrasing. "The system" means the deployed web
 - WHEN apply succeeds, THEN CI SHALL run read-only smoke checks (GET only) against the deployed URL, with no AWS credentials or secrets: security headers, a scenario page with five findings, `/stats` returning 200 (whatever the counts), and the stylesheet served `immutable` under the commit's static asset version. They SHALL NOT submit a form or record an attempt.
 - The build SHALL package only `approved` scenarios (`rt package`). IF any approved scenario fails validation, THEN the build SHALL fail and write no package. The same inputs SHALL produce a byte-identical package. Changes to `README.md` or files under `docs/` SHALL NOT change the package. The package SHALL include the repository's `LICENSE` file in the app's dist-info, so a change to `LICENSE` changes the package.
 - A scheduled workflow SHALL run the dependency audit (`make audit`) daily on `main`. Each deploy run SHALL publish, from a job with no AWS credentials, a CycloneDX SBOM of the Lambda's runtime dependencies as a build artifact, outside the package. The build backend SHALL be pinned to an exact version.
+- CI SHALL run `zizmor` (a pinned version) over `.github/` as a required check that fails on any finding, and every `actions/checkout` SHALL set `persist-credentials: false`. An OpenSSF Scorecard workflow SHALL run weekly and on pushes to `main`. Dependabot SHALL cover both `uv` and `github-actions`. The branch and tag rulesets SHALL be kept in `.github/rulesets/`, with the required checks named there.
 
 **R15 — Observability and cost.**
 - Logs SHALL be structured JSON with a request ID. Rationale text SHALL never be logged.

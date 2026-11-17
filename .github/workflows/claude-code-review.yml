@@ -10,6 +10,8 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+permissions: {}
+
 jobs:
   claude-review:
     # Dependabot runs get no Actions secrets, so skip them rather than fail (docs/decisions.md).
@@ -17,16 +19,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      contents: read # check out the repository
+      pull-requests: read # read the pull request the review is about
+      issues: read # read linked issues and conversation threads
+      id-token: write # claude-code-action exchanges the OIDC token for its GitHub App token
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Run Claude Code Review
         id: claude-review

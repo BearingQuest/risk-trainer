@@ -1,7 +1,9 @@
 version: 2
 updates:
   # Version updates for the uv lock. Minor and patch updates share one PR; majors stay separate.
-  # Security updates and alerts are repository settings, not this file.
+  # A 7-day cooldown waits a week after a release before proposing it, so a compromised release
+  # has time to be caught and pulled first. Security updates and alerts are repository settings,
+  # not this file.
   - package-ecosystem: uv
     directory: "/"
     schedule:
@@ -11,4 +13,18 @@ updates:
     open-pull-requests-limit: 3
     groups:
       uv-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Actions are pinned to commit SHAs; Dependabot updates the SHA and the version comment
+  # together. Not covered: the gitleaks, zizmor, semgrep and checkov versions in ci.yml are
+  # bumped by hand.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      actions-minor-and-patch:
         update-types: [minor, patch]

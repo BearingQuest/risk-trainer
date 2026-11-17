@@ -31,8 +31,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
-      contents: read
-      id-token: write
+      contents: read # check out the repository
+      id-token: write # OIDC token for the plan role
     env:
       TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
     steps:
@@ -92,7 +92,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: read # check out the repository
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -118,8 +118,8 @@ jobs:
     # repo:BearingQuest@352613740/risk-trainer@1398551921:environment:prod, the only one the deploy role trusts.
     environment: prod
     permissions:
-      contents: read
-      id-token: write
+      contents: read # check out the repository
+      id-token: write # OIDC token for the deploy role (environment prod)
     env:
       TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
     steps:
@@ -160,7 +160,7 @@ jobs:
     # No environment, no OIDC role and no secrets. The full checkout includes static/, so the
     # stylesheet check can confirm the live asset version matches this commit.
     permissions:
-      contents: read
+      contents: read # check out the repository
     env:
       SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL }}
     steps:

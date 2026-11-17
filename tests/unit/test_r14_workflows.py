@@ -224,14 +224,14 @@ def test_r14_review_workflow_skips_dependabot_and_matches_ci_checkout() -> None:
     assert ci_checkouts == {checkout}
 
 
-def test_r14_dependabot_updates_uv_monthly_grouped_with_cooldown() -> None:
+def test_r14_dependabot_updates_uv_and_actions_monthly_grouped_with_cooldown() -> None:
     config = load(DEPENDABOT)
     assert config["version"] == 2
-    (update,) = config["updates"]
-    assert update["package-ecosystem"] == "uv"
-    assert update["directory"] == "/"
-    assert update["schedule"]["interval"] == "monthly"
-    assert update["cooldown"]["default-days"] == 7
-    assert 1 <= update["open-pull-requests-limit"] <= 5
-    (group,) = update["groups"].values()
-    assert sorted(group["update-types"]) == ["minor", "patch"]  # majors stay separate PRs
+    assert {u["package-ecosystem"] for u in config["updates"]} == {"uv", "github-actions"}
+    for update in config["updates"]:
+        assert update["directory"] == "/"
+        assert update["schedule"]["interval"] == "monthly"
+        assert update["cooldown"]["default-days"] == 7
+        assert 1 <= update["open-pull-requests-limit"] <= 5
+        (group,) = update["groups"].values()
+        assert sorted(group["update-types"]) == ["minor", "patch"]  # majors stay separate PRs

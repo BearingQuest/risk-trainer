@@ -194,7 +194,7 @@ Then run the Deploy workflow and approve it. Terraform reads each parameter's ve
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every pull request: `check` (ruff, mypy, pytest, rt validate), `gitleaks`, `semgrep`, `pip-audit`, `iac` (terraform fmt, validate, `terraform test` with a mocked provider, and checkov), and `e2e` (Playwright, in the official Playwright image pinned by digest, whose tag must match playwright in `uv.lock`; not a required check yet). `deploy.yml` plans and applies `infra/envs/prod`, then runs read-only smoke checks against the deployed app (see Deploying). `claude-code-review.yml` runs the read-only Claude reviewer. CodeQL runs through GitHub's default setup.
+`.github/workflows/ci.yml` runs on every pull request: `check` (ruff, mypy, pytest, rt validate), `gitleaks`, `semgrep`, `pip-audit`, `zizmor` (static analysis of the workflows, pinned through `uvx`), `iac` (terraform fmt, validate, `terraform test` with a mocked provider, and checkov), and `e2e` (Playwright, in the official Playwright image pinned by digest, whose tag must match playwright in `uv.lock`; not a required check yet). `deploy.yml` plans and applies `infra/envs/prod`, then runs read-only smoke checks against the deployed app (see Deploying). `claude-code-review.yml` runs the read-only Claude reviewer. CodeQL runs through GitHub's default setup. `scorecard.yml` runs OpenSSF Scorecard weekly and on pushes to `main`, and `scheduled-audit.yml` runs `make audit` daily. The branch and tag rulesets are kept in `.github/rulesets/` (`main.json` names the required checks above; the owner applies them in GitHub).
 
 ## License
 

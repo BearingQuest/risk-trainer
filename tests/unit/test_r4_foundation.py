@@ -99,7 +99,7 @@ def test_r4_ci_runs_every_required_check() -> None:
     assert workflow["permissions"] == {"contents": "read"}
     jobs = workflow["jobs"]
     # The ruleset requires these names; e2e runs too but isn't required yet.
-    assert set(jobs) == {"check", "gitleaks", "semgrep", "pip-audit", "iac", "e2e"}
+    assert set(jobs) == {"check", "gitleaks", "semgrep", "pip-audit", "zizmor", "iac", "e2e"}
     check_steps = " ".join(step.get("run", "") for step in jobs["check"]["steps"])
     for command in ("ruff check", "ruff format --check", "mypy", "pytest", "rt validate"):
         assert command in check_steps

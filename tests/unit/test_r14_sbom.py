@@ -2,10 +2,10 @@
 
 import json
 import shlex
-import subprocess
 from pathlib import Path
 from typing import Any
 
+from tests._proc import run
 from tests.helpers import REPO_ROOT
 
 DEV_ONLY = ("pip-audit", "filelock", "moto", "pytest", "playwright")
@@ -22,7 +22,7 @@ def recipe_export_command(target: str) -> list[str]:
 def run_export(target: str, out: Path) -> None:
     command = recipe_export_command(target)
     command[command.index("-o") + 1] = str(out)
-    subprocess.run(command, cwd=REPO_ROOT, check=True, capture_output=True)  # noqa: S603
+    run(command, cwd=REPO_ROOT, check=True, capture_output=True)
 
 
 def sbom(tmp_path: Path) -> dict[str, Any]:

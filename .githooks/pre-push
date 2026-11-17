@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Scans the commits being pushed for secrets with gitleaks. `make hooks`
+# installs it (core.hooksPath = .githooks); CI's gitleaks job still scans the
+# full history. Git passes one line per ref on stdin:
+#   <local ref> <local sha> <remote ref> <remote sha>
+# Kept to bash 3.2, the version macOS ships as /bin/bash.
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks not found: brew install gitleaks" >&2
+  exit 1
+fi
+
+zero=$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  if [ "$local_sha" = "$zero" ]; then
+    continue # deleting a remote ref: nothing to scan
+  fi
+  if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    # A new branch, or a remote commit this clone doesn't have: scan the
+    # commits that aren't on any remote-tracking branch yet.
+    range="$local_sha --not --remotes"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  gitleaks git --redact --log-opts "$range" .
+done

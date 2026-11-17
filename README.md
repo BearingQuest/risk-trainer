@@ -10,6 +10,7 @@ Requires [uv](https://docs.astral.sh/uv/). uv installs Python 3.14 from `.python
 uv sync --locked
 make check      # ruff, mypy, pytest with coverage (≥ 85% on domain + content), rt validate
 make audit      # pip-audit against the locked dependencies
+make hooks      # once per clone: use the committed pre-push hook (gitleaks on the commits being pushed; brew install gitleaks)
 uv run playwright install chromium   # once, for the browser tests
 make e2e        # Playwright tests of the exercise form (keyboard, 360 px, slot limit)
 make package    # Lambda zip at dist/lambda.zip (arm64, Python 3.14, approved scenarios only)

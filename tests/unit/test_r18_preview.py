@@ -1,13 +1,13 @@
 """R18 — local preview: the exact "DRAFT — not published." label, and no preview when deployed."""
 
 import shlex
-import subprocess
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
 from risk_trainer.cli.main import PREVIEW_IN_LAMBDA, app, serve_preview
+from tests._proc import run
 from tests.helpers import REPO_ROOT, RT001_TEXT, WriteScenario
 from tests.web_helpers import RT001_ID, client, rt001, submit
 
@@ -90,7 +90,7 @@ def test_r18_package_excludes_uvicorn(tmp_path: Path) -> None:
     command = package_export_command()
     out = command.index("-o") + 1
     command[out] = str(tmp_path / "requirements.txt")
-    subprocess.run(command, cwd=REPO_ROOT, check=True, capture_output=True)  # noqa: S603
+    run(command, cwd=REPO_ROOT, check=True, capture_output=True)
     packages = {
         line.split("==", 1)[0].lower()
         for line in (tmp_path / "requirements.txt").read_text(encoding="utf-8").splitlines()

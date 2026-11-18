@@ -12,6 +12,7 @@ Principles: accuracy before volume (only owner-approved content reaches learners
 - Work in plan mode first. Don't edit files until the owner approves the plan.
 - A change that alters behavior updates the matching PRD acceptance criteria in the same pull request and names the requirement IDs.
 - Record decisions that change the plan in `docs/decisions.md` (date, decision, reason).
+- UI work follows docs/design.md.
 - Before changing files, fetch origin and create a new branch from origin/main, unless the owner has said to continue on the current branch; never commit to main.
 - In local sessions: if the working tree has uncommitted changes, or the current branch isn't main and the owner hasn't said to continue on it, stop and ask before doing anything else. The review agent in GitHub Actions is exempt; it only reviews.
 - When you open a pull request, fill in every section of `.github/pull_request_template.md`, in the same order, in the PR body.
@@ -48,7 +49,7 @@ Never add a resource that bills outside the always-free allowance without the ow
 ## Repository layout
 ```
 AGENTS.md  CLAUDE.md  .mcp.json  README.md  Makefile  pyproject.toml  uv.lock
-docs/PRD.md  docs/decisions.md
+docs/PRD.md  docs/decisions.md  docs/design.md  docs/design/
 content/scenarios/      approved only; packaged into deployments
 content/drafts/         never deployed; the only folder save_draft may write to
 prompts/coach_me.md     versioned with code

@@ -324,6 +324,58 @@ def test_agents_md_tells_the_agent_to_run_gh_on_its_own() -> None:
     assert "Only a plain `gh` call runs outside the sandbox" in text
 
 
+def test_agents_md_pushes_without_the_upstream_flag() -> None:
+    # The sandbox can't write .git/config, so `git push -u` fails; the rule tells agents not to.
+    assert (
+        "Push a branch with `git push origin <branch>`. Never use `-u` or `--set-upstream`: "
+        "the sandbox can't write `.git/config`, so the push fails."
+    ) in agents_text()
+
+
+def test_agents_md_skips_pty_tests_outside_ci() -> None:
+    # The sandbox can't allocate a pty, so such a test must skip locally instead of failing.
+    assert (
+        "A test that needs a pseudo-terminal (pty) skips outside CI, with the reason in the skip "
+        "message, and runs in CI. The sandbox can't allocate a pty."
+    ) in agents_text()
+
+
+def test_agents_md_browser_scripts_run_by_the_owner() -> None:
+    # The sandbox can't start Chromium on macOS, so the agent plans the script and doesn't run it.
+    assert (
+        "A script that starts a browser outside the e2e container (for example a screenshot "
+        "script) is run by the owner in a plain Terminal after reading it. The sandbox can't "
+        "start Chromium on macOS. Say so in the plan; don't try it."
+    ) in agents_text()
+
+
+def test_agents_md_adds_allow_local_binding_only_with_a_local_server() -> None:
+    # allowLocalBinding widens the sandbox; it needs a reason (a test that starts a server).
+    assert (
+        "Don't add `sandbox.network.allowLocalBinding` unless this repo's tests start a local "
+        "server; if they do, propose it in the plan with a decisions row."
+    ) in agents_text()
+
+
+def test_agents_md_flags_a_baseline_reaudit_on_scope_change() -> None:
+    # New scope switches on controls the last audit never checked; the plan must say so.
+    assert (
+        "When a planned change first adds a Python package or `docs/PRD.md` to a repo that had "
+        "none, a GUI, a GitHub Pages site, a release workflow or the first release, or an AWS "
+        "deploy or `infra/`, say in the plan that a baseline re-audit is due and name the "
+        "controls that start to apply. The owner decides when to run it."
+    ) in agents_text()
+
+
+def test_agents_md_keeps_the_uv_cooldown() -> None:
+    # The cooldown is a supply-chain control; an agent must not loosen it to get a newer version.
+    assert (
+        "Keep exclude-newer as the first key under [tool.uv]; never remove or loosen it to get a "
+        "newer version. If a security fix is newer than 7 days, propose a per-package "
+        "exclude-newer-package override and a decisions row, and stop for the owner."
+    ) in agents_text()
+
+
 def test_agents_md_forbids_reading_secret_paths() -> None:
     assert "Never read `~/career-workspace`, `~/.aws`, `~/.ssh` or `.env` files." in agents_text()
 

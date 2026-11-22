@@ -1,6 +1,54 @@
-# Risk Trainer
+<p align="center">
+  <a href="https://bearingquest.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/readme/bearing-quest-lockup-on-dark.svg">
+      <img alt="Bearing Quest" src="docs/readme/bearing-quest-lockup-on-light.svg" width="220">
+    </picture>
+  </a>
+</p>
 
-A hosted, no-login web app that teaches security risk prioritization: five findings, limited remediation capacity, and a CISSP risk response (avoid, mitigate, transfer, accept) for each. Requirements live in [`docs/PRD.md`](docs/PRD.md). Rules for every contributor and AI agent are in [`AGENTS.md`](AGENTS.md).
+<h1 align="center">Risk Trainer</h1>
+
+<p align="center">
+  A hosted, no-login web app that teaches security risk prioritization.<br>
+  Part of the <a href="https://bearingquest.com">Bearing Quest</a> project family.
+</p>
+
+<p align="center">
+  <a href="https://github.com/BearingQuest/risk-trainer/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/BearingQuest/risk-trainer/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/BearingQuest/risk-trainer"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/BearingQuest/risk-trainer/badge"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-1B365D"></a>
+  <img alt="Python 3.14" src="https://img.shields.io/badge/python-3.14-1B365D">
+</p>
+
+Five findings, limited remediation capacity, and a CISSP risk response (avoid, mitigate, transfer, accept) for each. Requirements live in [`docs/PRD.md`](docs/PRD.md). Rules for every contributor and AI agent are in [`AGENTS.md`](AGENTS.md).
+
+> [!NOTE]
+> AI agents can draft and validate scenarios through the authoring MCP server (`rt mcp`), which has no approve tool. Approval is `rt approve`, an owner-only command.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/readme/risk-trainer-exercise-dark.png">
+  <img alt="The Risk Trainer exercise page for the scenario Five findings, two fixes: the organization, its constraints and a remediation capacity of two findings." src="docs/readme/risk-trainer-exercise-light.png" width="720">
+</picture>
+
+## How it runs
+
+```mermaid
+flowchart LR
+  B["Browser"]
+  GA["GitHub Actions"]
+  subgraph AWS
+    CF["CloudFront with AWS WAF"]
+    L["Lambda function URL<br/>FastAPI app"]
+    D[("DynamoDB table")]
+    P["SSM Parameter Store"]
+  end
+  B -->|HTTPS| CF
+  CF -->|"secret origin header"| L
+  L --> D
+  L -->|"secrets read at startup"| P
+  GA -->|"OIDC role: plan on merge,<br/>apply after owner approval"| AWS
+```
 
 ## Setup
 

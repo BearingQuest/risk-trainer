@@ -224,6 +224,19 @@ def test_r14_review_workflow_skips_dependabot_and_matches_ci_checkout() -> None:
     assert ci_checkouts == {checkout}
 
 
+def test_r14_review_workflow_pins_the_model() -> None:
+    # An exact model ID, not an alias, so the review model changes only through a reviewed PR.
+    # The sandbox override and the inline-comment-only --allowedTools line must stay as they are.
+    (review,) = load(REVIEW)["jobs"].values()
+    (review_step,) = [s for s in steps(review) if s.get("id") == "claude-review"]
+    args = [line.strip() for line in review_step["with"]["claude_args"].splitlines()]
+    assert args[0] == "--model claude-sonnet-5-5"
+    assert args[1:] == [
+        '--settings \'{"sandbox":{"enabled":false}}\'',
+        '--allowedTools "mcp__github_inline_comment__create_inline_comment"',
+    ]
+
+
 def test_r14_dependabot_updates_uv_and_actions_monthly_grouped_with_cooldown() -> None:
     config = load(DEPENDABOT)
     assert config["version"] == 2

@@ -123,8 +123,10 @@ def test_r4_review_workflow_permissions_and_allowed_tools() -> None:
     assert set(re.findall(r"secrets\.([A-Z0-9_]+)", text)) == {"CLAUDE_CODE_OAUTH_TOKEN"}
     action = next(s for s in job["steps"] if "claude-code-action" in s.get("uses", ""))
     # CI-14: the runner has no sandbox tooling, so the sandbox is off for this run only; the
-    # reviewer has no Bash, and --allowedTools stays the inline-comment tool alone.
+    # reviewer has no Bash, and --allowedTools stays the inline-comment tool alone. The model is
+    # pinned by exact ID (test_r14_review_workflow_pins_the_model).
     assert action["with"]["claude_args"].splitlines() == [
+        "--model claude-sonnet-5-5",
         '--settings \'{"sandbox":{"enabled":false}}\'',
         '--allowedTools "mcp__github_inline_comment__create_inline_comment"',
     ]

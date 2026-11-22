@@ -17,6 +17,11 @@ Principles: accuracy before volume (only owner-approved content reaches learners
 - In local sessions: if the working tree has uncommitted changes, or the current branch isn't main and the owner hasn't said to continue on it, stop and ask before doing anything else. The review agent in GitHub Actions is exempt; it only reviews.
 - When you open a pull request, fill in every section of `.github/pull_request_template.md`, in the same order, in the PR body.
 - Run every `gh` command on its own: no `cd`, `&&`, `;`, pipes or redirects. You already start in the repo. Only a plain `gh` call runs outside the sandbox, where it can read its login.
+- Push a branch with `git push origin <branch>`. Never use `-u` or `--set-upstream`: the sandbox can't write `.git/config`, so the push fails.
+- A test that needs a pseudo-terminal (pty) skips outside CI, with the reason in the skip message, and runs in CI. The sandbox can't allocate a pty.
+- A script that starts a browser outside the e2e container (for example a screenshot script) is run by the owner in a plain Terminal after reading it. The sandbox can't start Chromium on macOS. Say so in the plan; don't try it.
+- Don't add `sandbox.network.allowLocalBinding` unless this repo's tests start a local server; if they do, propose it in the plan with a decisions row.
+- When a planned change first adds a Python package or `docs/PRD.md` to a repo that had none, a GUI, a GitHub Pages site, a release workflow or the first release, or an AWS deploy or `infra/`, say in the plan that a baseline re-audit is due and name the controls that start to apply. The owner decides when to run it.
 - Never read `~/career-workspace`, `~/.aws`, `~/.ssh` or `.env` files.
 
 ## Human gates: agents never do these
@@ -50,6 +55,7 @@ Never add a resource that bills outside the always-free allowance without the ow
 ```
 AGENTS.md  CLAUDE.md  .mcp.json  README.md  Makefile  pyproject.toml  uv.lock
 docs/PRD.md  docs/decisions.md  docs/design.md  docs/design/
+docs/readme/            README images only (docs/design/ is for UI work); checked by tests/unit/test_readme.py
 content/scenarios/      approved only; packaged into deployments
 content/drafts/         never deployed; the only folder save_draft may write to
 prompts/coach_me.md     versioned with code
@@ -75,6 +81,7 @@ Dependencies point inward: `web` and `mcp` → `storage` → `domain`. `domain/`
 - **AWS:** IAM scoped to specific actions and resource ARNs; document any required wildcard inline. boto3 clients set explicit timeouts and retries. Tag every resource `project = "risk-trainer"` and `env`.
 - **Tests:** every requirement has a test, named with its ID where practical (`test_r17_rejects_path_outside_drafts`). Unit tests never call real AWS.
 - **Dependencies:** add one only with a one-line reason in the plan and `docs/decisions.md`.
+- **Install cooldown:** Keep exclude-newer as the first key under [tool.uv]; never remove or loosen it to get a newer version. If a security fix is newer than 7 days, propose a per-package exclude-newer-package override and a decisions row, and stop for the owner.
 - **GitHub Actions:** pin third-party actions to a commit SHA.
 - **Review workflow:** The review workflow's GITHUB_TOKEN is read-only. It keeps id-token: write, which claude-code-action needs for its GitHub App token. Its --allowedTools allows only the inline-comment tool; that line is what stops the reviewer from pushing, so never widen it without the owner's approval.
 

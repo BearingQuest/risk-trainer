@@ -77,3 +77,7 @@ branch = true
 fail_under = 85
 show_missing = true
 skip_covered = true
+
+[tool.uv]
+# Cooldown: ignore releases newer than 7 days (Semgrep reads only up to the first bracket).
+exclude-newer = "7 days"
